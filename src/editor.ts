@@ -9,16 +9,16 @@ import {
   internalProperty,
 } from 'lit-element';
 import { HomeAssistant, LovelaceCardEditor } from 'custom-card-helpers';
-import { LinakDeskCardConfig } from './types';
+import { MegadeskCardConfig } from './types';
 import { localize } from './localize/localize';
-@customElement('linak-desk-card-editor')
-export class LinakDeskCardEditor extends LitElement implements LovelaceCardEditor {
+@customElement('megadesk-card-editor')
+export class MegadeskCardEditor extends LitElement implements LovelaceCardEditor {
   @property({ attribute: false }) public hass?: HomeAssistant;
-  @internalProperty() private _config!: LinakDeskCardConfig;
+  @internalProperty() private _config!: MegadeskCardConfig;
   @internalProperty() private _helpers?: any;
   private _initialized = false;
 
-  public setConfig(config: LinakDeskCardConfig): void {
+  public setConfig(config: MegadeskCardConfig): void {
     this._config = config;
 
     this.loadCardHelpers();
@@ -40,6 +40,7 @@ export class LinakDeskCardEditor extends LitElement implements LovelaceCardEdito
     const covers = Object.keys(this.hass.states).filter(eid => eid.substr(0, eid.indexOf('.')) === 'cover');
     const binarySensors = Object.keys(this.hass.states).filter(eid => eid.substr(0, eid.indexOf('.')) === 'binary_sensor');
     const sensors = Object.keys(this.hass.states).filter(eid => eid.substr(0, eid.indexOf('.')) === 'sensor');
+    const numbers = Object.keys(this.hass.states).filter(eid => eid.substr(0, eid.indexOf('.')) === 'number');
 
     return html`
       <div class="card-config">
@@ -83,11 +84,28 @@ export class LinakDeskCardEditor extends LitElement implements LovelaceCardEdito
         </div>
         <div class="option">
           <paper-dropdown-menu
-            label=${localize('editor.connection_sensor')}
+            label=${localize('editor.height_number_entity')}
+            @value-changed=${this._valueChanged}
+            .configValue=${'height_number_entity'}
+          >
+            <paper-listbox slot="dropdown-content" .selected=${numbers.indexOf(this._config.height_number_entity || '')}>
+              <paper-item></paper-item>
+              ${numbers.map(entity => {
+                return html`
+                  <paper-item>${entity}</paper-item>
+                `;
+              })}
+            </paper-listbox>
+          </paper-dropdown-menu>
+        </div>
+        <div class="option">
+          <paper-dropdown-menu
+            label=${localize('editor.connection_sensor')} (Optional)
             @value-changed=${this._valueChanged}
             .configValue=${'connection_sensor'}
           >
-            <paper-listbox slot="dropdown-content" .selected=${binarySensors.indexOf(this._config.connection_sensor)}>
+            <paper-listbox slot="dropdown-content" .selected=${binarySensors.indexOf(this._config.connection_sensor || '')}>
+              <paper-item></paper-item>
               ${binarySensors.map(entity => {
                 return html`
                   <paper-item>${entity}</paper-item>
@@ -98,11 +116,12 @@ export class LinakDeskCardEditor extends LitElement implements LovelaceCardEdito
         </div>
         <div class="option">
           <paper-dropdown-menu
-            label=${localize('editor.moving_sensor')}
+            label=${localize('editor.moving_sensor')} (Optional)
             @value-changed=${this._valueChanged}
             .configValue=${'moving_sensor'}
           >
-            <paper-listbox slot="dropdown-content" .selected=${binarySensors.indexOf(this._config.moving_sensor)}>
+            <paper-listbox slot="dropdown-content" .selected=${binarySensors.indexOf(this._config.moving_sensor || '')}>
+              <paper-item></paper-item>
               ${binarySensors.map(entity => {
                 return html`
                   <paper-item>${entity}</paper-item>
@@ -113,20 +132,20 @@ export class LinakDeskCardEditor extends LitElement implements LovelaceCardEdito
         </div>
         <div class="option">
           <paper-input
-            label=${localize('editor.min_height')}
-            .value=${this._config.min_height}
+            label=${localize('editor.min_height')} (Default: 58.42)
+            .value=${this._config.min_height || 58.42}
             auto-validate
-            allowed-pattern="[0-9]"
-            .configType=${'integer'}
+            allowed-pattern="[0-9.]"
+            .configType=${'number'}
             .configValue=${'min_height'}
             @value-changed=${this._valueChanged}
           ></paper-input>
           <paper-input
-            label=${localize('editor.max_height')}
-            .value=${this._config.max_height}
+            label=${localize('editor.max_height')} (Default: 119.38)
+            .value=${this._config.max_height || 119.38}
             auto-validate
-            allowed-pattern="[0-9]"
-            .configType=${'integer'}
+            allowed-pattern="[0-9.]"
+            .configType=${'number'}
             .configValue=${'max_height'}
             @value-changed=${this._valueChanged}
           ></paper-input>
@@ -145,8 +164,8 @@ export class LinakDeskCardEditor extends LitElement implements LovelaceCardEdito
                 .value=${p.target}
                 .presetValue=${'target'}
                 .presetIndex=${i}
-                allowed-pattern="[0-9]"
-                .configType=${'integer'}
+                allowed-pattern="[0-9.]"
+                .configType=${'number'}
                 @value-changed=${this._presetChanged}
               ></paper-input>
               <ha-icon icon="mdi:close" .presetIndex=${i} @click=${this.removePreset}></ha-icon>  
@@ -166,7 +185,7 @@ export class LinakDeskCardEditor extends LitElement implements LovelaceCardEdito
   }
 
   private _presetChanged({target}): void {
-    const value = target.configType === 'integer' ? (parseInt(target.value) || 0) : target.value;
+    const value = target.configType === 'number' ? (parseFloat(target.value) || 0) : target.value;
     this._config = {
       ...this._config,
       presets: Object.assign(
@@ -200,31 +219,38 @@ export class LinakDeskCardEditor extends LitElement implements LovelaceCardEdito
       return;
     }
     if (target.configValue) {
+      let value = target.value;
+      if (target.configType === 'number') {
+        value = parseFloat(target.value) || 0;
+      }
+      if (target.configType === 'integer') {
+        value = parseInt(target.value) || 0;
+      }
       this._config = {
         ...this._config,
-        [target.configValue]: target.checked !== undefined 
-          ? target.checked 
-          : target.configType === 'integer' 
-            ? (parseInt(target.value) || 0) 
-            : target.value,
+        [target.configValue]: value,
       };
     }
     this.fireConfigChangeEvent();
   }
 
   addPreset(): void {
-    this._config = {
-      ...this._config,
-      presets: [...this._config?.presets, { label: '', target: this._config.min_height}],
-    };
+    if (!this._config || !this._config.presets) {
+      return;
+    }
+    const presets = [...this._config.presets];
+    presets.push({ label: '', target: 70 });
+    this._config = { ...this._config, presets };
     this.fireConfigChangeEvent();
   }
 
   removePreset({ target }): void {
-    this._config = {
-      ...this._config,
-      presets: this._config?.presets.filter((_, i) => i !== target.presetIndex),
-    };
+    if (!this._config || !this._config.presets) {
+      return;
+    }
+    const presets = [...this._config.presets];
+    presets.splice(target.presetIndex, 1);
+    this._config = { ...this._config, presets };
     this.fireConfigChangeEvent();
   }
 

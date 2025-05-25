@@ -10,7 +10,7 @@ import {
   internalProperty,
 } from 'lit-element';
 import { HomeAssistant, LovelaceCardEditor } from 'custom-card-helpers';
-import type { LinakDeskCardConfig } from './types';
+import type { MegadeskCardConfig } from './types';
 import { localize } from './localize/localize';
 import { HassEntity } from 'home-assistant-js-websocket';
 import tableBottomImg from './table_bottom.png';
@@ -21,46 +21,49 @@ import './editor';
 window.customCards = window.customCards || [];
 window.customCards.push({
   preview: true,
-  type: 'linak-desk-card',
+  type: 'megadesk-card',
   name: localize('common.name'),
   description: localize('common.description'),
 });
 
-@customElement('linak-desk-card')
-export class LinakDeskCard extends LitElement {
+@customElement('megadesk-card')
+export class MegadeskCard extends LitElement {
   public static async getConfigElement(): Promise<LovelaceCardEditor> {
-    return document.createElement('linak-desk-card-editor');
+    return document.createElement('megadesk-card-editor');
   }
 
-  public static getStubConfig(_: HomeAssistant, entities: string[]): Partial<LinakDeskCardConfig> {
+  public static getStubConfig(_: HomeAssistant, entities: string[]): Partial<MegadeskCardConfig> {
       const [desk] = entities.filter((eid) => eid.substr(0, eid.indexOf('.')) === 'cover' && eid.includes('desk'));
-      const [height_sensor] = entities.filter((eid) => eid.substr(0, eid.indexOf('.')) === 'sensor' && eid.includes('desk_height'));
-      const [moving_sensor] = entities.filter((eid) => eid.substr(0, eid.indexOf('.')) === 'binary_sensor' && eid.includes('desk_moving'));
-      const [connection_sensor] = entities.filter((eid) => eid.substr(0, eid.indexOf('.')) === 'binary_sensor' && eid.includes('desk_connection'));
+      const [height_sensor] = entities.filter((eid) => eid.substr(0, eid.indexOf('.')) === 'sensor' && (eid.includes('height') || eid.includes('desk')));
+      const [moving_sensor] = entities.filter((eid) => eid.substr(0, eid.indexOf('.')) === 'binary_sensor' && eid.includes('moving'));
     return {
       desk,
       height_sensor,
       moving_sensor,
-      connection_sensor,
-      min_height: 62,
-      max_height: 127,
+      min_height: 58.42,
+      max_height: 119.38,
       presets: []
     };
   }
 
   @property({ attribute: false }) public hass!: HomeAssistant;
-  @internalProperty() private config!: LinakDeskCardConfig;
+  @internalProperty() private config!: MegadeskCardConfig;
+  private moveTimer?: number;
+  private isMoving = false;
 
-  public setConfig(config: LinakDeskCardConfig): void {
+  public setConfig(config: MegadeskCardConfig): void {
     if (!config.desk || !config.height_sensor) {
       throw new Error(localize('common.desk_and_height_required'));
     }
 
-    if (!config.min_height || !config.max_height) {
-      throw new Error(localize('common.min_and_max_height_required'));
-    }
+    // Set default min/max heights if not provided (based on our megadesk configuration)
+    const defaultConfig = {
+      min_height: 58.42,
+      max_height: 119.38,
+      ...config
+    };
 
-    this.config = { ...config };
+    this.config = { ...defaultConfig };
   }
 
   get desk(): HassEntity {
@@ -68,22 +71,20 @@ export class LinakDeskCard extends LitElement {
   }
 
   get height(): number {
-    return this.relativeHeight + this.config.min_height;
-  }
-
-  get relativeHeight(): number {
-    return parseInt(this.hass.states[this.config.height_sensor]?.state, 10) || 0;
-  }
-
-  get connected(): boolean {
-    return this.hass.states[this.config.connection_sensor]?.state === 'on';
+    // For megadesk, we get absolute height directly from the sensor
+    return parseFloat(this.hass.states[this.config.height_sensor]?.state) || 0;
   }
 
   get moving(): boolean {
-    return this.hass.states[this.config.moving_sensor]?.state === 'on';
+    return this.config.moving_sensor ? 
+      this.hass.states[this.config.moving_sensor]?.state === 'on' : false;
   }
+  
   get alpha(): number {
-    return (this.relativeHeight) / (this.config.max_height - this.config.min_height)
+    // Calculate position as percentage between min and max height
+    const minHeight = this.config.min_height || 58.42;
+    const maxHeight = this.config.max_height || 119.38;
+    return Math.max(0, Math.min(1, (this.height - minHeight) / (maxHeight - minHeight)));
   }
 
   protected shouldUpdate(changedProps: PropertyValues): boolean {
@@ -99,9 +100,8 @@ export class LinakDeskCard extends LitElement {
     if (newHass) {
       return (
         newHass.states[this.config?.desk] !== this.hass?.states[this.config?.desk]
-        || newHass.states[this.config?.connection_sensor]?.state !== this.hass?.states[this.config?.connection_sensor]?.state
         || newHass.states[this.config?.height_sensor]?.state !== this.hass?.states[this.config?.height_sensor]?.state
-        || newHass.states[this.config?.moving_sensor]?.state !== this.hass?.states[this.config?.moving_sensor]?.state
+        || (this.config.moving_sensor ? newHass.states[this.config.moving_sensor]?.state !== this.hass?.states[this.config.moving_sensor]?.state : false)
       );
     }
     return true;
@@ -110,16 +110,12 @@ export class LinakDeskCard extends LitElement {
   protected render(): TemplateResult | void {
     return html`
       <ha-card .header=${this.config.name}>
-        ${this.config.connection_sensor ? html`<div class="connection">
-          ${localize(this.connected ? 'status.connected' : 'status.disconnected')}
-          <div class="indicator ${this.connected ? 'connected' : 'disconnected'}" ></div>
-        </div>` : html``}
         <div class="preview">
           <img src="${tableTopImg}" style="transform: translateY(${this.calculateOffset(90)}px);" />
           <img src="${tableMiddleImg}" style="transform: translateY(${this.calculateOffset(60)}px);" />
           <img src="${tableBottomImg}" />
           <div class="height" style="transform: translateY(${this.calculateOffset(90)}px);">
-            ${this.height}
+            ${this.height.toFixed(1)}
             <span>cm</span>
           </div>
           <div class="knob">
@@ -155,19 +151,32 @@ export class LinakDeskCard extends LitElement {
         <div class="presets">
           ${presets.map(item => html`
             <paper-button @click="${() => this.handlePreset(item.target)}">
-              ${item.label} - ${item.target} cm
+              ${item.label}
             </paper-button>`)} 
         </div>
       `;
   }
 
   handlePreset(target: number): void {
-    if (target > this.config.max_height) {
+    const minHeight = this.config.min_height || 58.42;
+    const maxHeight = this.config.max_height || 119.38;
+    
+    if (target > maxHeight || target < minHeight) {
       return;
     }
 
-    const travelDist = this.config.max_height - this.config.min_height;
-    const positionInPercent = Math.round(((target - this.config.min_height) / travelDist) * 100);
+    // If height_number_entity is configured, set it directly
+    if (this.config.height_number_entity) {
+      this.hass.callService('number', 'set_value', {
+        entity_id: this.config.height_number_entity,
+        value: target
+      });
+      return;
+    }
+
+    // Otherwise, use the cover position calculation (original behavior)
+    const travelDist = maxHeight - minHeight;
+    const positionInPercent = Math.round(((target - minHeight) / travelDist) * 100);
 
     if (Number.isInteger(positionInPercent)) {
       this.callService('set_cover_position', { position: positionInPercent });
@@ -175,15 +184,44 @@ export class LinakDeskCard extends LitElement {
   }
 
   private goUp(): void {
+    if (this.isMoving) return;
+    
+    this.isMoving = true;
     this.callService('open_cover');
+    
+    // Start continuous movement after initial delay
+    this.moveTimer = window.setTimeout(() => {
+      this.moveTimer = window.setInterval(() => {
+        this.callService('open_cover');
+      }, 100); // Send command every 100ms while held
+    }, 500); // Initial delay of 500ms before continuous movement
   }
 
   private goDown(): void {
+    if (this.isMoving) return;
+    
+    this.isMoving = true;
     this.callService('close_cover');
+    
+    // Start continuous movement after initial delay
+    this.moveTimer = window.setTimeout(() => {
+      this.moveTimer = window.setInterval(() => {
+        this.callService('close_cover');
+      }, 100); // Send command every 100ms while held
+    }, 500); // Initial delay of 500ms before continuous movement
   }
 
   private stop(): void {
-    this.callService('stop_cover');
+    if (this.moveTimer) {
+      clearTimeout(this.moveTimer);
+      clearInterval(this.moveTimer);
+      this.moveTimer = undefined;
+    }
+    
+    if (this.isMoving) {
+      this.callService('stop_cover');
+      this.isMoving = false;
+    }
   }
 
   private callService(service, options = {}): void {
@@ -282,30 +320,11 @@ export class LinakDeskCard extends LitElement {
         font-size: 18px;
         font-weight: 500;
       }
-
-      .connection {
-        position: absolute;
-        display: flex;
-        align-items: center;
-        right: 12px;
-        top: 10px;
-        color: var(--text-primary-color);
-        z-index: 1;
-      }
-
-      .connection .indicator {
-        margin-left: 10px;
-        height: 10px;
-        width: 10px;
-        border-radius: 50%;
-      } 
-
-      .indicator.connected {
-        background-color: green;
-      }
-      .indicator.disconnected {
-        background-color: red;
-      }
     `;
+  }
+
+  disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this.stop(); // Clean up any active timers
   }
 }

@@ -1,7 +1,7 @@
 import { LovelaceCard, LovelaceCardConfig, LovelaceCardEditor } from 'custom-card-helpers';
 declare global {
   interface HTMLElementTagNameMap {
-    'linak-desk-card-editor': LovelaceCardEditor;
+    'megadesk-card-editor': LovelaceCardEditor;
     'hui-error-card': LovelaceCard;
   }
   interface Window {
@@ -14,14 +14,14 @@ declare global {
   }
 }
 
-export interface LinakDeskCardConfig extends LovelaceCardConfig {
+export interface MegadeskCardConfig extends LovelaceCardConfig {
   name?: string;
   desk: string;
-  moving_sensor: string;
-  connection_sensor: string;
+  moving_sensor?: string;
   height_sensor: string;
-  max_height: number;
-  min_height: number;
+  height_number_entity?: string;
+  max_height?: number;
+  min_height?: number;
   presets: {
     target: number;
     label: string;

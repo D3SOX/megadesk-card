@@ -1,48 +1,48 @@
-# LinakDesk Card by [@IhorSyerkov](https://github.com/IhorSyerkov)
+# Megadesk Card by [@IhorSyerkov](https://github.com/IhorSyerkov)
 
 [![hacs][hacs-image]][hacs-url]
 
-> [Home Assistant][home-assistant] Lovelace Card for controlling desks based on linak bluetooth controller.
+> [Home Assistant][home-assistant] Lovelace Card for controlling desks based on megadesk controller.
 
-![linak-desk-card_preview](https://user-images.githubusercontent.com/9998984/107797805-a3a6c800-6d5b-11eb-863a-56ae0343995c.png)
+![megadesk-card_preview](https://user-images.githubusercontent.com/9998984/107797805-a3a6c800-6d5b-11eb-863a-56ae0343995c.png)
 
-Designed to work with https://github.com/j5lien/esphome-idasen-desk-controller
+Designed to work with https://github.com/gcormier/megadesk_companion/
 
 ## HACS
 
 This card is available in [HACS](https://hacs.xyz/) (Home Assistant Community Store).
-Just search for `Linak Desk Card` in plugins tab.
+Just search for `Megadesk Card` in plugins tab.
 
 ## Config
 
 ```yaml
-type: 'custom:linak-desk-card'
-name: ''
-desk: cover.desk
-height_sensor: sensor.desk_height
-moving_sensor: binary_sensor.desk_moving
-connection_sensor: binary_sensor.desk_connection
-min_height: 62
-max_height: 127
+type: 'custom:megadesk-card'
+name: 'Megadesk Controller'
+desk: cover.megadesk_controls
+height_sensor: sensor.current_height
+moving_sensor: binary_sensor.megadesk_moving  # Optional
+connection_sensor: binary_sensor.megadesk_connection  # Optional  
+min_height: 58.42  # Optional, default: 58.42
+max_height: 119.38  # Optional, default: 119.38
 presets:
-  - label: Stay
-    target: 108
-  - label: Sit
-    target: 76
+  - label: Standing
+    target: 108.5
+  - label: Sitting
+    target: 76.2
 ```
 
 ## Options
 
 | Name               | Type    | Requirement  | Description                                 | Default             |
 | ------------------ | ------- | ------------ | ------------------------------------------- | ------------------- |
-| `type`             | `string`| **Required** | `custom:linak-desk-card`                    |                     |
+| `type`             | `string`| **Required** | `custom:megadesk-card`                      |                     |
 | `name`             | `string`| **Optional** | Card name                                   | `` .                |
 | `desk`             | `string`| **Required** | Home Assistant entity ID (cover).           | `none`              |
-| `moving_sensor`    | `string`| **Required** | Home Assistant entity ID (sensor).          | `none`              |
-| `connection_sensor`| `string`| **Required** | Home Assistant entity ID (binary_sensor).   | `none`              |
-| `height_sensor`    | `string`| **Required** | Home Assistant entity ID (binary_sensor).   | `none`              |
-| `max_height`       | `number`| **Required** | Desk height in min position.                | `none`              |
-| `min_height`       | `number`| **Required** | Desk height in max position.                | `none`              |
+| `height_sensor`    | `string`| **Required** | Home Assistant entity ID (sensor) - absolute height in cm. | `none`              |
+| `moving_sensor`    | `string`| **Optional** | Home Assistant entity ID (binary_sensor).   | `none`              |
+| `connection_sensor`| `string`| **Optional** | Home Assistant entity ID (binary_sensor).   | `none`              |
+| `min_height`       | `number`| **Optional** | Desk height in minimum position (cm).       | `58.42`             |
+| `max_height`       | `number`| **Optional** | Desk height in maximum position (cm).       | `119.38`            |
 | `presets`          | `Array` | **Optional** | Predefined presets                          | `[]`                |
 
 ### `preset` object
@@ -51,6 +51,15 @@ presets:
 | ----------- | :------: | ----------------------- |
 | `label`     | `string` | Preset label.           |
 | `target`    | `number` | Absolute height in cm   |
+
+## Key Differences from Linak Desk Card
+
+This card is specifically designed for Megadesk controllers and differs from the original Linak desk card in several important ways:
+
+- **Absolute Height Sensors**: Uses absolute height values in centimeters directly from the sensor, instead of relative height calculations
+- **Optional Sensors**: Connection and moving sensors are optional, making the card work even with minimal sensor configurations
+- **Default Heights**: Comes with sensible defaults for Megadesk height ranges (58.42cm - 119.38cm)
+- **Simplified Configuration**: No need to calculate relative heights or manage complex sensor dependencies
 
 ## Supported languages
 
@@ -61,10 +70,13 @@ This card supports translations. Please, help to add more translations and impro
 
 ## Supported models
 
-- Ikea IDÅSEN
+- Any desk with Megadesk controller
+- Compatible with ESPHome Megadesk companion configurations
+
 ## References
 
-* Inspired by https://github.com/macbury/SmartHouse/tree/master/home-assistant/www/custom-lovelace/linak-desk
+* Based on https://github.com/IhorSyerkov/linak-desk-card
+* Designed for https://github.com/gcormier/megadesk_companion/
 
 ## License
 

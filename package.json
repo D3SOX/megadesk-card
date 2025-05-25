@@ -1,16 +1,16 @@
 {
-  "name": "linak-desk-card",
+  "name": "megadesk-card",
   "version": "1.0.1",
-  "description": "Home Assistant Lovelace card for Linak desks",
+  "description": "Home Assistant Lovelace card for Megadesk controllers",
   "keywords": [
     "home-assistant",
     "homeassistant",
     "hass",
     "lovelace",
     "custom-cards",
-    "linak-desk-card"
+    "megadesk-card"
   ],
-  "module": "dist/linak-desk-card.js",
+  "module": "dist/megadesk-card.js",
   "repository": "git@github.com:IhorSyerkov/linak-desk-card.git",
   "author": "Ihor Syerkov <serkov.ihor@gmail.com>",
   "license": "MIT",
@@ -57,8 +57,8 @@
         {
           "assets": [
             {
-              "path": "dist/linak-desk-card.js",
-              "label": "linak-desk-card.js"
+              "path": "dist/megadesk-card.js",
+              "label": "megadesk-card.js"
             }
           ]
         }

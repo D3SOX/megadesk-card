@@ -1,8 +1,8 @@
 {
   "common": {
     "version": "Version",
-    "name":"Linak Desk Card",
-    "description": "Card for controlling table height",
+    "name":"Megadesk Card",
+    "description": "Card for controlling Megadesk table height",
     "invalid_configuration": "Invalid configuration",
     "desk_and_height_required": "Desk and height sensor are required",
     "min_and_max_height_required": "`min_height` and `max_height` settings are required"
@@ -11,14 +11,10 @@
     "name": "Name (Optional)",
     "desk":"Desk Entity (Required)",
     "height_sensor":"Height Sensor (Required)",
-    "connection_sensor":"Connection Sensor (Required)",
-    "moving_sensor":"Moving Sensor (Required)",
-    "min_height":"Min Height (Required)",
-    "max_height":"Max Height (Required)",
+    "height_number_entity":"Height Number Entity (Optional)",
+    "moving_sensor":"Moving Sensor (Optional)",
+    "min_height":"Min Height (Optional)",
+    "max_height":"Max Height (Optional)",
     "presets":"Presets"
-  },
-  "status": {
-    "connected": "Connected",
-    "disconnected": "Disconnected"
   }
 }
