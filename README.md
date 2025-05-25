@@ -1,4 +1,6 @@
-# Megadesk Card by [@IhorSyerkov](https://github.com/IhorSyerkov)
+# Megadesk Card
+
+Based on [linak-desk-card](https://github.com/IhorSyerkov/linak-desk-card) by [@IhorSyerkov](https://github.com/IhorSyerkov)
 
 [![hacs][hacs-image]][hacs-url]
 
