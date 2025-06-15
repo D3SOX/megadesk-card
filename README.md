@@ -6,7 +6,7 @@ Based on [linak-desk-card](https://github.com/IhorSyerkov/linak-desk-card) by [@
 
 > [Home Assistant][home-assistant] Lovelace Card for controlling desks based on megadesk controller.
 
-![megadesk-card_preview](https://user-images.githubusercontent.com/9998984/107797805-a3a6c800-6d5b-11eb-863a-56ae0343995c.png)
+![megadesk-card_preview](https://github.com/user-attachments/assets/ab75eaca-7cb0-4890-98dd-7231965522a1)
 
 Designed to work with https://github.com/gcormier/megadesk_companion/
 
