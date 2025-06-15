@@ -12,8 +12,8 @@ Designed to work with https://github.com/gcormier/megadesk_companion/
 
 ## HACS
 
-This card is available in [HACS](https://hacs.xyz/) (Home Assistant Community Store).
-Just search for `Megadesk Card` in plugins tab.
+This card is not yet available in the [HACS](https://hacs.xyz/) (Home Assistant Community Store) repository.
+You need to add it as custom repository `https://github.com/D3SOX/megadesk-card` (Type Integration). Then search for `Megadesk Card`.
 
 ## Config
 
