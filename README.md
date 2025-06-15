@@ -10,14 +10,16 @@ Based on [linak-desk-card](https://github.com/IhorSyerkov/linak-desk-card) by [@
 
 Designed to work with https://github.com/gcormier/megadesk_companion/
 
-## HACS
+## Installation
 
 This card is not yet available via [HACS](https://hacs.xyz/) (Home Assistant Community Store).
 You can soon it as custom repository `https://github.com/D3SOX/megadesk-card` (Type Integration). Then search for `Megadesk Card`.
 
 For now you need to manually download the js from [Releases](https://github.com/D3SOX/megadesk-card/releases) and put in your Home Assistant folder as `www/community/megadesk-card/megadesk-card.js`, then `Edit Dashboard` -> `Manage Resources` -> `Add Resource` -> URL: `/local/community/megadesk-card/megadesk-card.js?cache=1` (JavaScript module)
 
-## Config
+## Configuration
+
+This is an example config using the default entity IDs from [my ESPHome config](https://github.com/D3SOX/megadesk/blob/master/esphome%2Fmegadesk-companion-enhanced.yaml). You might wanna check if out to get the most functionality out of this
 
 ```yaml
 type: 'custom:megadesk-card'
@@ -84,7 +86,7 @@ This card supports translations. Please, help to add more translations and impro
 ## Supported models
 
 - Any desk with Megadesk controller
-- Compatible with ESPHome Megadesk companion configurations
+- Compatible with [my ESPHome Megadesk companion configuration](https://github.com/D3SOX/megadesk/blob/master/esphome%2Fmegadesk-companion-enhanced.yaml)
 
 ## References
 
