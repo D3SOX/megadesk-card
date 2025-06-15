@@ -12,8 +12,10 @@ Designed to work with https://github.com/gcormier/megadesk_companion/
 
 ## HACS
 
-This card is not yet available in the [HACS](https://hacs.xyz/) (Home Assistant Community Store) repository.
-You need to add it as custom repository `https://github.com/D3SOX/megadesk-card` (Type Integration). Then search for `Megadesk Card`.
+This card is not yet available via [HACS](https://hacs.xyz/) (Home Assistant Community Store).
+You can soon it as custom repository `https://github.com/D3SOX/megadesk-card` (Type Integration). Then search for `Megadesk Card`.
+
+For now you need to manually download the js from [Releases](https://github.com/D3SOX/megadesk-card/releases) and put in your Home Assistant folder as `www/community/megadesk-card/megadesk-card.js`, then `Edit Dashboard` -> `Manage Resources` -> `Add Resource` -> URL: `/local/community/megadesk-card/megadesk-card.js?cache=1` (JavaScript module)
 
 ## Config
 
