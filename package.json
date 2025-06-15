@@ -11,7 +11,7 @@
     "megadesk-card"
   ],
   "module": "dist/megadesk-card.js",
-  "repository": "git@github.com:IhorSyerkov/linak-desk-card.git",
+  "repository": "git@github.com:D3SOX/megadesk-card.git",
   "author": "Ihor Syerkov <serkov.ihor@gmail.com>",
   "license": "MIT",
   "dependencies": {
