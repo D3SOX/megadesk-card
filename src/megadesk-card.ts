@@ -7,10 +7,19 @@ import {
   TemplateResult,
   css,
   PropertyValues,
-  internalProperty,
+  state,
 } from 'lit-element';
 import { HomeAssistant, LovelaceCardEditor } from 'custom-card-helpers';
-import type { MegadeskCardConfig } from './types';
+import type { 
+  MegadeskCardConfig, 
+  PresetConfig
+} from './types';
+import { 
+  DEFAULT_MIN_HEIGHT,
+  DEFAULT_MAX_HEIGHT,
+  MOVEMENT_COMMAND_INTERVAL,
+  MOVEMENT_INITIAL_DELAY
+} from './types';
 import { localize } from './localize/localize';
 import { HassEntity } from 'home-assistant-js-websocket';
 import tableBottomImg from './table_bottom.png';
@@ -18,6 +27,7 @@ import tableMiddleImg from './table_middle.png';
 import tableTopImg from './table_top.png';
 import './editor';
 
+// Global registration
 window.customCards = window.customCards || [];
 window.customCards.push({
   preview: true,
@@ -32,59 +42,99 @@ export class MegadeskCard extends LitElement {
     return document.createElement('megadesk-card-editor');
   }
 
-  public static getStubConfig(_: HomeAssistant, entities: string[]): Partial<MegadeskCardConfig> {
-      const [desk] = entities.filter((eid) => eid.substr(0, eid.indexOf('.')) === 'cover' && eid.includes('desk'));
-      const [height_sensor] = entities.filter((eid) => eid.substr(0, eid.indexOf('.')) === 'sensor' && (eid.includes('height') || eid.includes('desk')));
-      const [moving_sensor] = entities.filter((eid) => eid.substr(0, eid.indexOf('.')) === 'binary_sensor' && eid.includes('moving'));
+  public static getStubConfig(
+    _: HomeAssistant, 
+    entities: string[]
+  ): Partial<MegadeskCardConfig> {
+    const [desk] = entities.filter(
+      (eid) => eid.startsWith('cover.') && eid.includes('desk')
+    );
+    const [height_sensor] = entities.filter(
+      (eid) => eid.startsWith('sensor.') && (eid.includes('height') || eid.includes('desk'))
+    );
+    const [moving_sensor] = entities.filter(
+      (eid) => eid.startsWith('binary_sensor.') && eid.includes('moving')
+    );
+
     return {
       desk,
       height_sensor,
       moving_sensor,
-      min_height: 58.42,
-      max_height: 119.38,
+      min_height: DEFAULT_MIN_HEIGHT,
+      max_height: DEFAULT_MAX_HEIGHT,
       presets: []
     };
   }
 
-  @property({ attribute: false }) public hass!: HomeAssistant;
-  @internalProperty() private config!: MegadeskCardConfig;
-  private moveTimer?: number;
+  @property({ attribute: false }) 
+  public hass!: HomeAssistant;
+
+  @state() 
+  private config!: MegadeskCardConfig;
+
+  @state()
   private isMoving = false;
+
+  private moveTimer?: number;
 
   public setConfig(config: MegadeskCardConfig): void {
     if (!config.desk || !config.height_sensor) {
       throw new Error(localize('common.desk_and_height_required'));
     }
 
-    // Set default min/max heights if not provided (based on our megadesk configuration)
-    const defaultConfig = {
-      min_height: 58.42,
-      max_height: 119.38,
+    // Validate height range
+    const minHeight = config.min_height ?? DEFAULT_MIN_HEIGHT;
+    const maxHeight = config.max_height ?? DEFAULT_MAX_HEIGHT;
+    
+    if (minHeight >= maxHeight) {
+      throw new Error('min_height must be less than max_height');
+    }
+
+    // Set default values and validate configuration
+    this.config = {
+      min_height: minHeight,
+      max_height: maxHeight,
+      presets: [],
       ...config
     };
-
-    this.config = { ...defaultConfig };
   }
 
-  get desk(): HassEntity {
-    return this.hass.states[this.config.desk];
+  get desk(): HassEntity | undefined {
+    return this.hass?.states?.[this.config?.desk];
+  }
+
+  get heightEntity(): HassEntity | undefined {
+    return this.hass?.states?.[this.config?.height_sensor];
   }
 
   get height(): number {
-    // For megadesk, we get absolute height directly from the sensor
-    return parseFloat(this.hass.states[this.config.height_sensor]?.state) || 0;
+    const state = this.heightEntity?.state;
+    if (!state || state === 'unavailable' || state === 'unknown') {
+      return 0;
+    }
+    const height = parseFloat(state);
+    return isNaN(height) ? 0 : height;
   }
 
   get moving(): boolean {
-    return this.config.moving_sensor ? 
-      this.hass.states[this.config.moving_sensor]?.state === 'on' : false;
+    if (!this.config?.moving_sensor) {
+      return this.isMoving;
+    }
+    return this.hass?.states?.[this.config.moving_sensor]?.state === 'on';
   }
   
   get alpha(): number {
     // Calculate position as percentage between min and max height
-    const minHeight = this.config.min_height || 58.42;
-    const maxHeight = this.config.max_height || 119.38;
+    const minHeight = this.config?.min_height ?? DEFAULT_MIN_HEIGHT;
+    const maxHeight = this.config?.max_height ?? DEFAULT_MAX_HEIGHT;
     return Math.max(0, Math.min(1, (this.height - minHeight) / (maxHeight - minHeight)));
+  }
+
+  get isConnected(): boolean {
+    if (!this.config?.connection_sensor) {
+      return true; // Assume connected if no sensor configured
+    }
+    return this.hass?.states?.[this.config.connection_sensor]?.state === 'on';
   }
 
   protected shouldUpdate(changedProps: PropertyValues): boolean {
@@ -96,72 +146,143 @@ export class MegadeskCard extends LitElement {
       return true;
     }
 
-    const newHass = changedProps.get('hass') as HomeAssistant | undefined;
-    if (newHass) {
-      return (
-        newHass.states[this.config?.desk] !== this.hass?.states[this.config?.desk]
-        || newHass.states[this.config?.height_sensor]?.state !== this.hass?.states[this.config?.height_sensor]?.state
-        || (this.config.moving_sensor ? newHass.states[this.config.moving_sensor]?.state !== this.hass?.states[this.config.moving_sensor]?.state : false)
-      );
+    const oldHass = changedProps.get('hass') as HomeAssistant | undefined;
+    if (!oldHass || oldHass === this.hass) {
+      return false;
     }
-    return true;
+
+    // Check if relevant entities have changed
+    const relevantEntities = [
+      this.config.desk,
+      this.config.height_sensor,
+      this.config.moving_sensor,
+      this.config.connection_sensor
+    ].filter((entityId): entityId is string => !!entityId);
+
+    return relevantEntities.some(entityId => 
+      oldHass.states[entityId] !== this.hass.states[entityId]
+    );
   }
 
-  protected render(): TemplateResult | void {
+  protected render(): TemplateResult {
+    if (!this.config || !this.hass) {
+      return html`
+        <ha-card>
+          <div class="error">
+            ${localize('common.invalid_configuration')}
+          </div>
+        </ha-card>
+      `;
+    }
+
+    if (!this.isConnected) {
+      return html`
+        <ha-card .header=${this.config.name}>
+          <div class="error">
+            Desk not connected
+          </div>
+        </ha-card>
+      `;
+    }
+
     return html`
       <ha-card .header=${this.config.name}>
         <div class="preview">
-          <img src="${tableTopImg}" style="transform: translateY(${this.calculateOffset(90)}px);" />
-          <img src="${tableMiddleImg}" style="transform: translateY(${this.calculateOffset(60)}px);" />
-          <img src="${tableBottomImg}" />
-          <div class="height" style="transform: translateY(${this.calculateOffset(90)}px);">
+          <img 
+            src="${tableTopImg}" 
+            alt="Table top"
+            style="transform: translateY(${this.calculateOffset(90)}px);" 
+          />
+          <img 
+            src="${tableMiddleImg}" 
+            alt="Table middle"
+            style="transform: translateY(${this.calculateOffset(60)}px);" 
+          />
+          <img 
+            src="${tableBottomImg}" 
+            alt="Table bottom"
+          />
+          <div 
+            class="height" 
+            style="transform: translateY(${this.calculateOffset(90)}px);"
+          >
             ${this.height.toFixed(1)}
             <span>cm</span>
           </div>
-          <div class="knob">
-            <div class="knob-button" 
-                  @touchstart='${this.goUp}' 
-                  @mousedown='${this.goUp}' 
-                  @touchend='${this.stop}'
-                  @mouseup='${this.stop}'>
-              <ha-icon icon="mdi:chevron-up"></ha-icon>
-            </div>
-            <div class="knob-button" 
-                  @touchstart=${this.goDown} 
-                  @mousedown=${this.goDown} 
-                  @touchend=${this.stop}
-                  @mouseup=${this.stop}>
-              <ha-icon icon="mdi:chevron-down"></ha-icon>
-            </div>
-          </div>
+          ${this.renderControls()}
           ${this.renderPresets()}
         </div>
       </ha-card>
     `;
   }
 
-  calculateOffset(maxValue: number): number {
-    return Math.round(maxValue * (1.0 - this.alpha))
+  private renderControls(): TemplateResult {
+    const isDisabled = this.moving || !this.desk;
+    
+    return html`
+      <div class="knob">
+        <div 
+          class="knob-button ${isDisabled ? 'disabled' : ''}" 
+          @touchstart=${isDisabled ? undefined : this.goUp}
+          @mousedown=${isDisabled ? undefined : this.goUp}
+          @touchend=${this.stop}
+          @mouseup=${this.stop}
+          @touchcancel=${this.stop}
+          @mouseleave=${this.stop}
+          ?disabled=${isDisabled}
+        >
+          <ha-icon icon="mdi:chevron-up"></ha-icon>
+        </div>
+        <div 
+          class="knob-button ${isDisabled ? 'disabled' : ''}" 
+          @touchstart=${isDisabled ? undefined : this.goDown}
+          @mousedown=${isDisabled ? undefined : this.goDown}
+          @touchend=${this.stop}
+          @mouseup=${this.stop}
+          @touchcancel=${this.stop}
+          @mouseleave=${this.stop}
+          ?disabled=${isDisabled}
+        >
+          <ha-icon icon="mdi:chevron-down"></ha-icon>
+        </div>
+      </div>
+    `;
   }
 
-  renderPresets(): TemplateResult {
-    const presets = this.config.presets || [];
+  private calculateOffset(maxValue: number): number {
+    return Math.round(maxValue * (1.0 - this.alpha));
+  }
+
+  private renderPresets(): TemplateResult {
+    const presets = this.config?.presets || [];
+    if (presets.length === 0) {
+      return html``;
+    }
 
     return html`
-        <div class="presets">
-          ${presets.map(item => html`
-            <paper-button @click="${() => this.handlePreset(item.target)}">
-              ${item.label}
-            </paper-button>`)} 
-        </div>
-      `;
+      <div class="presets">
+        ${presets.map(preset => html`
+          <paper-button 
+            @click="${() => this.handlePreset(preset.target)}"
+            ?disabled=${this.moving || !this.desk}
+          >
+            ${preset.label}
+          </paper-button>
+        `)} 
+      </div>
+    `;
   }
 
-  handlePreset(target: number): void {
-    const minHeight = this.config.min_height || 58.42;
-    const maxHeight = this.config.max_height || 119.38;
+  private handlePreset(target: number): void {
+    if (!this.config || this.moving || !this.desk) {
+      return;
+    }
+
+    const minHeight = this.config.min_height ?? DEFAULT_MIN_HEIGHT;
+    const maxHeight = this.config.max_height ?? DEFAULT_MAX_HEIGHT;
     
     if (target > maxHeight || target < minHeight) {
+      console.warn(`Preset target ${target} is outside valid range [${minHeight}, ${maxHeight}]`);
       return;
     }
 
@@ -170,6 +291,8 @@ export class MegadeskCard extends LitElement {
       this.hass.callService('number', 'set_value', {
         entity_id: this.config.height_number_entity,
         value: target
+      }).catch(error => {
+        console.error('Failed to set height number entity:', error);
       });
       return;
     }
@@ -183,8 +306,8 @@ export class MegadeskCard extends LitElement {
     }
   }
 
-  private goUp(): void {
-    if (this.isMoving) return;
+  private goUp = (): void => {
+    if (this.isMoving || !this.desk) return;
     
     this.isMoving = true;
     this.callService('open_cover');
@@ -193,12 +316,12 @@ export class MegadeskCard extends LitElement {
     this.moveTimer = window.setTimeout(() => {
       this.moveTimer = window.setInterval(() => {
         this.callService('open_cover');
-      }, 100); // Send command every 100ms while held
-    }, 500); // Initial delay of 500ms before continuous movement
-  }
+      }, MOVEMENT_COMMAND_INTERVAL);
+    }, MOVEMENT_INITIAL_DELAY);
+  };
 
-  private goDown(): void {
-    if (this.isMoving) return;
+  private goDown = (): void => {
+    if (this.isMoving || !this.desk) return;
     
     this.isMoving = true;
     this.callService('close_cover');
@@ -207,11 +330,11 @@ export class MegadeskCard extends LitElement {
     this.moveTimer = window.setTimeout(() => {
       this.moveTimer = window.setInterval(() => {
         this.callService('close_cover');
-      }, 100); // Send command every 100ms while held
-    }, 500); // Initial delay of 500ms before continuous movement
-  }
+      }, MOVEMENT_COMMAND_INTERVAL);
+    }, MOVEMENT_INITIAL_DELAY);
+  };
 
-  private stop(): void {
+  private stop = (): void => {
     if (this.moveTimer) {
       clearTimeout(this.moveTimer);
       clearInterval(this.moveTimer);
@@ -222,12 +345,19 @@ export class MegadeskCard extends LitElement {
       this.callService('stop_cover');
       this.isMoving = false;
     }
-  }
+  };
 
-  private callService(service, options = {}): void {
+  private callService(service: string, options: Record<string, unknown> = {}): void {
+    if (!this.config?.desk) {
+      console.error('No desk entity configured');
+      return;
+    }
+
     this.hass.callService('cover', service, {
       entity_id: this.config.desk,
       ...options
+    }).catch(error => {
+      console.error(`Failed to call service ${service}:`, error);
     });
   }
 
@@ -238,6 +368,7 @@ export class MegadeskCard extends LitElement {
         flex: 1;
         flex-direction: column;
       }
+      
       ha-card {
         flex-direction: column;
         flex: 1;
@@ -246,17 +377,29 @@ export class MegadeskCard extends LitElement {
         border-radius: 4px;
         overflow: hidden;
       }
+      
+      .error {
+        padding: 16px;
+        text-align: center;
+        color: var(--error-color);
+        font-weight: bold;
+      }
+      
       .preview {
         background: linear-gradient(to bottom, var(--primary-color), var(--dark-primary-color));
         overflow: hidden;
         position: relative;
         min-height: 365px;
       }
+      
       .preview img {
         position: absolute;
         bottom: 0px;
         transition: all 0.2s linear;
+        user-select: none;
+        pointer-events: none;
       }
+      
       .preview .knob {
         background: #fff;
         position: absolute;
@@ -270,19 +413,32 @@ export class MegadeskCard extends LitElement {
         height: 120px;
         box-shadow: 0px 0px 36px darkslategrey;
       }
+      
       .preview .knob .knob-button {
         display: flex;
         justify-content: center;
         align-items: center;
         flex: 1;
+        transition: background-color 0.2s ease;
       }
-      .preview .knob .knob-button ha-icon {
-        color: #030303;
+      
+      .preview .knob .knob-button:not(.disabled) {
         cursor: pointer;
       }
-      .preview .knob .knob-button:active {
+      
+      .preview .knob .knob-button.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      
+      .preview .knob .knob-button ha-icon {
+        color: #030303;
+      }
+      
+      .preview .knob .knob-button:not(.disabled):active {
         background: rgba(0, 0, 0, 0.06);
       }
+      
       .height {
         position: absolute;
         left: 30px;
@@ -290,10 +446,13 @@ export class MegadeskCard extends LitElement {
         font-size: 32px;
         font-weight: bold;
         transition: all 0.2s linear;
+        user-select: none;
       }
+      
       .height span {
         opacity: 0.6;
       }
+      
       .presets {
         position: absolute;
         display: flex;
@@ -319,6 +478,12 @@ export class MegadeskCard extends LitElement {
         color: rgb(3, 3, 3);
         font-size: 18px;
         font-weight: 500;
+        transition: opacity 0.2s ease;
+      }
+
+      .presets > paper-button[disabled] {
+        opacity: 0.5;
+        cursor: not-allowed;
       }
     `;
   }
