@@ -25,6 +25,7 @@ name: 'Megadesk Controller'
 desk: cover.megadesk_controls
 height_sensor: sensor.current_height
 height_number_entity: number.megadesk_height_cm  # Optional - for direct height control
+connection_sensor: binary_sensor.megadesk_in_network  # Optional - for connection status (For example with the Ping integration)
 moving_sensor: binary_sensor.megadesk_moving  # Optional
 min_height: 58.42  # Optional, default: 58.42
 max_height: 119.38  # Optional, default: 119.38
@@ -52,6 +53,7 @@ presets:
 | `desk`             | `string`| **Required** | Home Assistant entity ID (cover).           | `none`              |
 | `height_sensor`    | `string`| **Required** | Home Assistant entity ID (sensor) - absolute height in cm. | `none`              |
 | `height_number_entity` | `string`| **Optional** | Home Assistant number entity ID for direct height control. | `none`              |
+| `connection_sensor`    | `string`| **Optional** | Home Assistant entity ID (binary_sensor) for connection status. If provided, the card will show a connection indicator and display an error if the desk is not connected. | `none`              |
 | `moving_sensor`    | `string`| **Optional** | Home Assistant entity ID (binary_sensor).   | `none`              |
 | `min_height`       | `number`| **Optional** | Desk height in minimum position (cm).       | `58.42`             |
 | `max_height`       | `number`| **Optional** | Desk height in maximum position (cm).       | `119.38`            |
