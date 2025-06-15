@@ -18,5 +18,9 @@
     "max_height":"Max Height (Optional)",
     "presets":"Presets",
     "none":"None"
+  },
+  "status": {
+    "connected": "Connected",
+    "disconnected": "Disconnected"
   }
 }

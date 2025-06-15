@@ -187,6 +187,12 @@ export class MegadeskCard extends LitElement {
 
     return html`
       <ha-card .header=${this.config.name}>
+        ${this.config.connection_sensor ? html`
+          <div class="connection">
+            ${localize(this.isConnected ? 'status.connected' : 'status.disconnected')}
+            <div class="indicator ${this.isConnected ? 'connected' : 'disconnected'}"></div>
+          </div>
+        ` : html``}
         <div class="preview">
           <img 
             src="${tableTopImg}" 
@@ -484,6 +490,28 @@ export class MegadeskCard extends LitElement {
       .presets > paper-button[disabled] {
         opacity: 0.5;
         cursor: not-allowed;
+      }
+
+      .connection {
+        position: absolute;
+        display: flex;
+        align-items: center;
+        right: 12px;
+        top: 10px;
+        color: var(--text-primary-color, #222);
+        z-index: 1;
+      }
+      .connection .indicator {
+        margin-left: 10px;
+        height: 10px;
+        width: 10px;
+        border-radius: 50%;
+      }
+      .indicator.connected {
+        background-color: green;
+      }
+      .indicator.disconnected {
+        background-color: red;
       }
     `;
   }
