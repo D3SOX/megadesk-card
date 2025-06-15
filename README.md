@@ -23,7 +23,7 @@ For now you need to manually download the js from [Releases](https://github.com/
 type: 'custom:megadesk-card'
 name: 'Megadesk Controller'
 desk: cover.megadesk_controls
-height_sensor: sensor.current_height
+height_sensor: sensor.megadesk_current_height
 height_number_entity: number.megadesk_height_cm  # Optional - for direct height control
 connection_sensor: binary_sensor.megadesk_in_network  # Optional - for connection status (For example with the Ping integration)
 moving_sensor: binary_sensor.megadesk_moving  # Optional
