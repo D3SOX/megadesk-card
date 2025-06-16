@@ -12,7 +12,7 @@
   ],
   "module": "dist/megadesk-card.js",
   "repository": "git@github.com:D3SOX/megadesk-card.git",
-  "author": "Ihor Syerkov <serkov.ihor@gmail.com>",
+  "author": "D3SOX",
   "license": "MIT",
   "dependencies": {
     "custom-card-helpers": "^1.6.8",
