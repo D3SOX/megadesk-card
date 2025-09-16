@@ -12,6 +12,7 @@ Designed to work with https://github.com/gcormier/megadesk_companion/
 
 > [!TIP]
 > I provide an enhanced version of the ESPHome config [here](https://github.com/D3SOX/megadesk/blob/master/esphome%2Fmegadesk-companion-enhanced.yaml)
+> 
 > I did not test it again with the stock config. Please open an issue if it doesn't work.
 
 ## Installation
