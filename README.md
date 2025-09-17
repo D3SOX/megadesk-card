@@ -88,6 +88,32 @@ presets:
 | `label`     | `string` | Preset label.           |
 | `target`    | `number` | Absolute height in cm   |
 
+## Styling with card-mod
+
+You can recolor the card on a per-card basis using [card-mod](https://github.com/thomasloven/lovelace-card-mod/). The card's background gradient and connection label use these CSS variables:
+
+- `--primary-color` – top of the gradient
+- `--dark-primary-color` – bottom of the gradient
+- `--text-primary-color` – connection text color
+
+Example
+
+```yaml
+type: custom:megadesk-card
+# ...
+card_mod:
+  style: |
+    ha-card {
+      --primary-color: #6c2bd9;
+      --dark-primary-color: #3b0764;
+      --text-primary-color: #ffffff;
+    }
+```
+
+Result using the colors above
+
+![card-mod example](https://github.com/user-attachments/assets/a5b53740-e833-490c-ae26-99bd928d927d)
+
 ## Key Differences from Linak Desk Card
 
 This card is specifically designed for Megadesk controllers and differs from the original Linak desk card in several important ways:
@@ -121,3 +147,4 @@ MIT ©
 [hacs]: https://hacs.xyz
 [hacs-url]: https://github.com/hacs/integration
 [hacs-image]: https://img.shields.io/badge/hacs-default-orange.svg?style=flat-square
+[card-mod]: https://github.com/thomasloven/lovelace-card-mod
