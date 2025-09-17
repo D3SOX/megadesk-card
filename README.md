@@ -8,19 +8,34 @@ Based on [linak-desk-card](https://github.com/IhorSyerkov/linak-desk-card) by [@
 
 ![megadesk-card_preview](https://github.com/user-attachments/assets/ab75eaca-7cb0-4890-98dd-7231965522a1)
 
-Designed to work with https://github.com/gcormier/megadesk_companion/
+Designed to work with [Megadesk Companion](https://github.com/gcormier/megadesk_companion/)
 
 > [!TIP]
-> I provide an enhanced version of the ESPHome config [here](https://github.com/D3SOX/megadesk/blob/master/esphome%2Fmegadesk-companion-enhanced.yaml)
-> 
+> I provide an [enhanced ESPHome configuration](https://github.com/D3SOX/megadesk/blob/master/esphome%2Fmegadesk-companion-enhanced.yaml)
+>
 > I did not test it again with the stock config. Please open an issue if it doesn't work.
 
 ## Installation
 
-This card is not yet available via [HACS](https://hacs.xyz/) (Home Assistant Community Store).
-You can soon it as custom repository `https://github.com/D3SOX/megadesk-card` (Type Integration). Then search for `Megadesk Card`.
+This card is not yet available in the [HACS][hacs] default store, but you can install it via HACS as a custom repository.
 
-For now you need to manually download the js from [Releases](https://github.com/D3SOX/megadesk-card/releases) and put in your Home Assistant folder as `www/community/megadesk-card/megadesk-card.js`, then `Edit Dashboard` -> `Manage Resources` -> `Add Resource` -> URL: `/local/community/megadesk-card/megadesk-card.js?cache=1` (JavaScript module)
+### Install via HACS (recommended)
+
+1. In Home Assistant, go to HACS → three‑dot menu → Custom repositories
+2. Add repository URL: `https://github.com/D3SOX/megadesk-card`
+3. Set Category: `Dashboard (plugin)`
+4. Search for "Megadesk Card" under HACS → Frontend and install
+5. The resource should be added automatically. If not, add it manually: `Settings` → `Dashboards` → `Resources` → `Add resource`
+   - URL: `/hacsfiles/megadesk-card/megadesk-card.js`
+   - Type: `JavaScript module`
+
+### Manual installation (alternative)
+
+1. Download `megadesk-card.js` from [Releases](https://github.com/D3SOX/megadesk-card/releases)
+2. Copy it to `www/community/megadesk-card/megadesk-card.js` in your Home Assistant config folder
+3. Add a Lovelace resource: `Settings` → `Dashboards` → `Resources` → `Add resource`
+   - URL: `/local/community/megadesk-card/megadesk-card.js`
+   - Type: `JavaScript module`
 
 ## Configuration
 
@@ -95,8 +110,8 @@ This card supports translations. Please, help to add more translations and impro
 
 ## References
 
-* Based on https://github.com/IhorSyerkov/linak-desk-card
-* Designed for https://github.com/gcormier/megadesk_companion/
+- Based on [linak-desk-card](https://github.com/IhorSyerkov/linak-desk-card)
+- Designed for [Megadesk Companion](https://github.com/gcormier/megadesk_companion/)
 
 ## License
 
